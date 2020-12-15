@@ -24,11 +24,25 @@ logger = logging.getLogger()
 
 class Rule(rule.Rule):
 
+    def __init__(self, event_store: EventStore, message_comparator: MessageComparator,
+                 cache_size: int, match_timeout: int, configuration: dict):
+        super().__init__(event_store, message_comparator, cache_size, match_timeout, configuration)
+        self.config = configuration
+
     def get_name(self) -> str:
-        return "demo-conn1 vs demo-conn2"
+        groups = set(self.config.values())
+        name = ""
+        for group in groups:
+            aliases = list()
+            for alias in self.config:
+                if self.config[alias] == group:
+                    aliases.append(alias)
+            name += str(aliases) + " vs "
+        name = name[:-4]
+        return name
 
     def get_description(self) -> str:
-        return "Trader DEMO-CONN1 and trader DEMO-CONN2 both receive ExecutionReport with the same TrdMatchID"
+        return "Trader1 and trader2 both receive ExecutionReport with the same TrdMatchID"
 
     def get_attributes(self) -> [list]:
         return [
@@ -36,21 +50,17 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {'ER_FIX01': MessageGroupType.single,
-                'ER_FIX02': MessageGroupType.single}
+        return self.config.fromkeys(self.config, MessageGroupType.single)
 
     def group(self, message: ReconMessage, attributes: tuple):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
-        if session_alias not in ['demo-conn1', 'demo-conn2'] or \
-                message_type not in ['ExecutionReport']:
+        if session_alias not in self.config.keys():
             return
 
-        if message_type == 'ExecutionReport' and direction != Direction.FIRST:
-            return
-
-        if message_type == 'ExecutionReport' and message.proto_message.fields['ExecType'].simple_value != 'F':
+        if message_type == 'ExecutionReport' and direction != Direction.FIRST \
+                and message.proto_message.fields['ExecType'].simple_value != 'F':
             return
 
         if message_type == 'ExecutionReport' and \
@@ -58,10 +68,7 @@ class Rule(rule.Rule):
             logger.info(f"RULE '{self.get_name()}'. ER with empty TrdMatchID: {message.proto_message}.")
             return
 
-        if session_alias in ['demo-conn1', ]:
-            message.group_id = 'ER_FIX01'
-        elif session_alias in ['demo-conn2']:
-            message.group_id = 'ER_FIX02'
+        message.group_id = self.config[session_alias]
 
     def hash(self, message: ReconMessage, attributes: tuple):
         trd_match_id = message.proto_message.fields['TrdMatchID'].simple_value
