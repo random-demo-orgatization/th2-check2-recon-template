@@ -50,7 +50,7 @@ class Rule(rule.Rule):
 
     def description_of_groups(self) -> dict:
         desc = dict()
-        groups = set(self.config.values)
+        groups = set(self.config.values())
         for group in groups:
             desc[group] = MessageGroupType.single
         return desc
