@@ -26,7 +26,16 @@ class Rule(rule.Rule):
     config = dict()
 
     def get_name(self) -> str:
-        return "log vs demo-conn"
+        groups = set(self.config.values())
+        name = ""
+        for group in groups:
+            aliases = list()
+            for alias in self.config:
+                if self.config[alias] == group:
+                    aliases.append(alias)
+            name += str(aliases) + " vs "
+        name = name[:-4]
+        return name
 
     def configure(self, configuration):
         self.config = configuration
