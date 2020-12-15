@@ -23,12 +23,6 @@ logger = logging.getLogger()
 
 
 class Rule(rule.Rule):
-
-    def __init__(self, event_store: EventStore, message_comparator: MessageComparator,
-                 cache_size: int, match_timeout: int, configuration: dict):
-        super().__init__(event_store, message_comparator, cache_size, match_timeout, configuration)
-        self.config = configuration
-
     def get_name(self) -> str:
         groups = set(self.config.values())
         name = ""
@@ -43,6 +37,9 @@ class Rule(rule.Rule):
 
     def get_description(self) -> str:
         return "Trader1 and trader2 both receive ExecutionReport with the same TrdMatchID"
+
+    def configure(self, configuration):
+        self.config = configuration
 
     def get_attributes(self) -> [list]:
         return [
