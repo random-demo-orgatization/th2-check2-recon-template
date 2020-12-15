@@ -49,7 +49,11 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return self.config.fromkeys(self.config, MessageGroupType.single)
+        desc = dict()
+        groups = set(self.config.values)
+        for group in groups:
+            desc[group] = MessageGroupType.single
+        return desc
 
     def group(self, message: ReconMessage, attributes: tuple):
         message_type: str = message.proto_message.metadata.message_type
