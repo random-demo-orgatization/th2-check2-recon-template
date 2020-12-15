@@ -23,6 +23,8 @@ logger = logging.getLogger()
 
 
 class Rule(rule.Rule):
+    config = dict()
+
     def get_name(self) -> str:
         groups = set(self.config.values())
         name = ""
