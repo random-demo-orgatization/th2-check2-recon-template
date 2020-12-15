@@ -23,9 +23,13 @@ logger = logging.getLogger()
 
 
 class Rule(rule.Rule):
+    config = dict()
 
     def get_name(self) -> str:
         return "log vs demo-conn"
+
+    def configure(self, configuration):
+        self.config = configuration
 
     def get_description(self) -> str:
         return "NewOrderSingle message written to the logs and original NewOrderSingle message sent through the conn are the same"
@@ -36,15 +40,17 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {'NOS_LOG': MessageGroupType.single,
-                'NOS_CONN': MessageGroupType.single}
+        desc = dict()
+        groups = set(self.config.values())
+        for group in groups:
+            desc[group] = MessageGroupType.single
+        return desc
 
     def group(self, message: ReconMessage, attributes: tuple):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
-        if session_alias not in ['demo-conn1', 'demo-conn2', 'demo_log.txt'] or \
-                message_type not in ['NewOrderSingle']:
+        if session_alias not in self.config.keys() or message_type not in ['NewOrderSingle']:
             return
 
         if message_type == 'NewOrderSingle' and \
@@ -52,10 +58,7 @@ class Rule(rule.Rule):
             logger.info(f"RULE '{self.get_name()}'. NOS with empty SecondaryClOrdID: {message.proto_message}.")
             return
 
-        if session_alias in ['demo-conn1', 'demo-conn2']:
-            message.group_id = 'NOS_CONN'
-        elif session_alias in ['demo_log.txt']:
-            message.group_id = 'NOS_LOG'
+        message.group_id = self.config[session_alias]
 
     def hash(self, message: ReconMessage, attributes: tuple):
         cl_ord_id = message.proto_message.fields['SecondaryClOrdID'].simple_value
