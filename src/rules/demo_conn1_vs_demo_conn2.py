@@ -58,8 +58,8 @@ class Rule(rule.Rule):
         if session_alias not in self.config.keys():
             return
 
-        if message_type == 'ExecutionReport' and direction != Direction.FIRST \
-                and message.proto_message.fields['ExecType'].simple_value != 'F':
+        if message_type == 'ExecutionReport' and (direction != Direction.FIRST
+                                                  or message.proto_message.fields['ExecType'].simple_value != 'F'):
             return
 
         if message_type == 'ExecutionReport' and \
